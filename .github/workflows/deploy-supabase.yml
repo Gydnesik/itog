@@ -1,0 +1,34 @@
+name: Deploy Supabase Edge Function
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/process-schedule/**"
+      - "supabase/config.toml"
+      - ".github/workflows/deploy-supabase.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate Supabase secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Missing GitHub Actions secret: SUPABASE_ACCESS_TOKEN"; exit 1; }
+          test -n "$SUPABASE_PROJECT_REF" || { echo "Missing GitHub Actions secret: SUPABASE_PROJECT_REF"; exit 1; }
+
+      - name: Deploy process-schedule
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: npx --yes supabase@latest functions deploy process-schedule --project-ref "$SUPABASE_PROJECT_REF"
